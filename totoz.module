@@ -370,6 +370,7 @@ function totoz_preprocess_totoz_list(&$variables) {
       'name' => $totoz->title,
       'username' => $user->name,
       'created' => date('c', $totoz->created),
+      'changed' => date('c', $totoz->changed),
       'nsfw' => $totoz->field_nsfw[LANGUAGE_NONE][0]['value'],
       'url' => totoz_img($totoz),
       'tags' => $tags,

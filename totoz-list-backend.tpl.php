@@ -6,13 +6,14 @@
 
   $tags = join(', ', $totoz['tags']);
 
-  $time = strtotime($totoz['created']);
+  $ctime = strtotime($totoz['created']);
+  $mtime = strtotime($totoz['changed']);
 
   $totoz = array(
     'key' => 'post',
     'attributes' => array(
-      'id' => $totoz['nid'],
-      'time' => date('YmdHis', $time),
+      'id' => $mtime,
+      'time' => date('YmdHis', $mtime),
     ),
     'value' => array(
       'info' => $tags,
