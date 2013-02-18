@@ -1,0 +1,10 @@
+name = Totoz
+description = "Small images sharing"
+core = 7.x
+package = Totoz
+files[] = totoz.module
+files[] = totoz.install
+php = 5.3
+
+dependencies[] = image
+

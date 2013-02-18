@@ -1,0 +1,1228 @@
+<?php
+
+define('TOTOZ_SFW_PATH',  '/home/seeschloss/totoz.sauf.ca/sfw');
+define('TOTOZ_NSFW_PATH', '/home/seeschloss/totoz.sauf.ca/nsfw');
+
+/**
+ * Implements hook_menu().
+ */
+function totoz_menu() {
+  return array(
+    'admin/config/totoz' => array(
+      'title' => 'Totoz',
+      'page callback' => 'system_admin_menu_block_page',
+      'access arguments' => array('access administration pages'),
+      'file' => 'system.admin.inc',
+      'file path' => drupal_get_path('module', 'system'),
+      'position' => 'right',
+    ),
+    'admin/config/totoz/import' => array(
+      'title' => 'Import',
+      'page callback' => 'totoz_config_page',
+      'description' => 'Import existing totoz from other sources.',
+      'access arguments' => array('access administration pages'),
+    ),
+    'totoz-from-hfr/%' => array(
+      'title' => 'Import from HFR',
+      'file' => 'totoz.hfr.inc',
+      'page callback' => 'totoz_hfr_import',
+      'description' => 'Import a totoz from HFR.',
+      'access arguments' => array('access content'),
+      'page arguments' => array(1),
+    ),
+    'user/totoz' => array(
+      'title' => 'My totoz',
+      'page callback' => 'totoz_user_totozes',
+      'access callback' => array('_totoz_user_is_logged_in'),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'latest' => array(
+      'title' => 'Latest totozes',
+      'page callback' => 'totoz_list_totozes',
+      'page arguments' => array('html'),
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK,
+    ),
+    'latest.xml' => array(
+      'title' => 'Latest totozes',
+      'page callback' => 'totoz_list_totozes',
+      'page arguments' => array('xml'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'latest.json' => array(
+      'title' => 'Latest totozes',
+      'page callback' => 'totoz_list_totozes',
+      'page arguments' => array('json'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_json',
+      'type' => MENU_CALLBACK,
+    ),
+    'latest.rss' => array(
+      'title' => 'Latest totozes',
+      'page callback' => 'totoz_list_totozes',
+      'page arguments' => array('rss'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_rss',
+      'type' => MENU_CALLBACK,
+    ),
+    'latest/remote.xml' => array(
+      'title' => 'Latest totozes',
+      'page callback' => 'totoz_list_totozes',
+      'page arguments' => array('backend'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'search/xml' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_totozes',
+      'page arguments' => array('html'),
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK,
+    ),
+    'search' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_totozes',
+      'page arguments' => array('html'),
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK,
+    ),
+    'search.json' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_totozes',
+      'page arguments' => array('json'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_json',
+      'type' => MENU_CALLBACK,
+    ),
+    'search.xml' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_totozes',
+      'page arguments' => array('xml'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'search/xml' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_totozes',
+      'page arguments' => array('xml-tribune1'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'search/users.json' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_users',
+      'page arguments' => array('json'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_json',
+      'type' => MENU_CALLBACK,
+    ),
+    'search/users.xml' => array(
+      'title' => 'Search results',
+      'page callback' => 'totoz_search_users',
+      'page arguments' => array('xml'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'user/%user/totoz' => array(
+      'title' => 'Totozes',
+      'page callback' => 'totoz_list_user_totozes',
+      'page arguments' => array(1, 'html'),
+      'access arguments' => array('access content'),
+      'type' => MENU_LOCAL_TASK,
+    ),
+    'user/%user/totoz.json' => array(
+      'title' => 'Totozes',
+      'page callback' => 'totoz_list_user_totozes',
+      'page arguments' => array(1, 'json'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_json',
+      'type' => MENU_CALLBACK,
+    ),
+    'user/%user/totoz.xml' => array(
+      'title' => 'Totozes',
+      'page callback' => 'totoz_list_user_totozes',
+      'page arguments' => array(1, 'xml'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'node/%totoz/info' => array(
+      'title' => 'Details',
+      'page callback' => 'totoz_technical_info',
+      'page arguments' => array(1, 'html'),
+      'access arguments' => array('access content'),
+      'type' => MENU_LOCAL_TASK,
+    ),
+    'node/%totoz/info.xml' => array(
+      'title' => 'Details',
+      'page callback' => 'totoz_technical_info',
+      'page arguments' => array(1, 'xml'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+    'node/%totoz/info.json' => array(
+      'title' => 'Details',
+      'page callback' => 'totoz_technical_info',
+      'page arguments' => array(1, 'json'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_json',
+      'type' => MENU_CALLBACK,
+    ),
+    'taxonomy/term/%' => array(
+      'title' => 'Totozes',
+      'page callback' => 'totoz_list_tag_totozes',
+      'page arguments' => array(2, 'html'),
+      'access arguments' => array('access content'),
+      'type' => MENU_LOCAL_TASK,
+    ),
+    'taxonomy/term/%.json' => array(
+      'title' => 'Totozes',
+      'page callback' => 'totoz_list_tag_totozes',
+      'page arguments' => array(2, 'json'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_json',
+      'type' => MENU_CALLBACK,
+    ),
+    'taxonomy/term/%.xml' => array(
+      'title' => 'Totozes',
+      'page callback' => 'totoz_list_tag_totozes',
+      'page arguments' => array(2, 'xml'),
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
+  );
+}
+
+function totoz_technical_info($node, $format) {
+  $file = file_load($node->field_image[LANGUAGE_NONE][0]['fid']);
+  $path = drupal_realpath($file->uri);
+
+  $image = new Imagick($path);
+  $nbframes = $image->getNumberImages();
+  $animated = ($nbframes > 1);
+
+  $length = 0;
+  $frames = array();
+  for ($i = 0 ; $i < $nbframes ; $i++) {
+    $image->setIteratorIndex($i);
+
+    $frames[$i] = array(
+      'width' => $image->getImageWidth(),
+      'height' => $image->getImageHeight(),
+      'colors' => $image->getImageColors(),
+      'delay' => $image->getImageDelay()*10,
+    );
+
+    $length += $frames[$i]['delay'];
+  }
+
+  $md5 = md5_file($path);
+
+  $tags = array();
+  if (!empty($node->field_tags) and count($node->field_tags[LANGUAGE_NONE])) {
+    $tids = array();
+    foreach ($node->field_tags[LANGUAGE_NONE] as $tag) {
+      $tids[] = $tag['tid'];
+    }
+
+    foreach (taxonomy_term_load_multiple($tids) as $tid => $term) {
+      $tags[] = $term->name;
+    }
+    natsort($tags);
+  }
+
+  $theme_arguments = array(
+    'node' => $node,
+    'user' => user_load($node->uid),
+    'md5' => $md5,
+    'url' => totoz_img($node),
+    'weight' => filesize($path),
+    'format' => $image->getImageFormat(),
+    'width' => $image->getImageWidth(),
+    'height' => $image->getImageHeight(),
+    'animated' => $animated,
+    'frames' => $frames,
+    'length' => $length,
+    'tags' => $tags,
+    'nsfw' => $node->field_nsfw[LANGUAGE_NONE][0]['value'],
+  );
+
+  switch ($format) {
+    case 'xml':
+      return theme('totoz_info_xml', $theme_arguments);
+    case 'json':
+      return theme('totoz_info_json', $theme_arguments);
+    default:
+      return theme('totoz_info', $theme_arguments);
+  }
+}
+
+function totoz_img($node) {
+  return url('img/' . $node->title, array('absolute' => TRUE));
+}
+
+/**
+ * Callback for %totoz in menu entries
+ */
+function totoz_load($nid) {
+  if ($node = node_load($nid) and $node->type == 'totoz') {
+    return $node;
+  } else {
+    return FALSE;
+  }
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function totoz_menu_alter(&$menu) {
+  unset($menu['search/node']);
+  unset($menu['search/node/%']);
+}
+
+/**
+ * Implements hook_theme().
+ */
+function totoz_theme($existing, $type, $theme, $path) {
+  return array(
+    'totoz_info' => array(
+      'render element' => 'node',
+      'template' => 'totoz-info',
+    ),
+    'totoz_info_xml' => array(
+      'render element' => 'node',
+      'template' => 'totoz-info-xml',
+    ),
+    'totoz_info_json' => array(
+      'render element' => 'node',
+      'template' => 'totoz-info-json',
+    ),
+    'totoz_list' => array(
+      'render element' => 'nodes',
+      'template' => 'totoz-list',
+    ),
+    'totoz_list_json' => array(
+      'render element' => 'nodes',
+      'template' => 'totoz-list-json',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_totoz_list'),
+    ),
+    'totoz_list_xml' => array(
+      'render element' => 'nodes',
+      'template' => 'totoz-list-xml',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_totoz_list'),
+    ),
+    'totoz_list_xml_tribune1' => array(
+      'render element' => 'nodes',
+      'template' => 'totoz-list-xml-tribune1',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_totoz_list'),
+    ),
+    'totoz_list_backend' => array(
+      'render element' => 'nodes',
+      'template' => 'totoz-list-backend',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_totoz_list'),
+    ),
+    'totoz_list_rss' => array(
+      'render element' => 'nodes',
+      'template' => 'totoz-list-rss',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_totoz_list'),
+    ),
+    'totoz_list_users_json' => array(
+      'render element' => 'users',
+      'template' => 'totoz-list-users-json',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_users_list'),
+    ),
+    'totoz_list_users_xml' => array(
+      'render element' => 'users',
+      'template' => 'totoz-list-users-xml',
+      'preprocess functions' => array('template_preprocess', 'totoz_preprocess_users_list'),
+    ),
+  );
+}
+
+function totoz_preprocess_totoz_list(&$variables) {
+  foreach ($variables['nodes'] as &$totoz) {
+    $user = user_load($totoz->uid);
+
+    $tags = array();
+    if (!empty($totoz->field_tags) and count($totoz->field_tags[LANGUAGE_NONE])) {
+      $tids = array();
+      foreach ($totoz->field_tags[LANGUAGE_NONE] as $tag) {
+        $tids[] = $tag['tid'];
+      }
+
+      foreach (taxonomy_term_load_multiple($tids) as $tid => $term) {
+        $tags[$tid] = $term->name;
+      }
+      natsort($tags);
+    }
+
+    $data = array(
+      'nid' => $totoz->nid,
+      'uid' => $totoz->uid,
+      'name' => $totoz->title,
+      'username' => $user->name,
+      'created' => date('c', $totoz->created),
+      'nsfw' => $totoz->field_nsfw[LANGUAGE_NONE][0]['value'],
+      'url' => totoz_img($totoz),
+      'tags' => $tags,
+    );
+
+    $totoz = $data;
+  }
+}
+
+function totoz_preprocess_users_list(&$variables) {
+  foreach ($variables['users'] as &$user) {
+    $totoz = db_select('node', 'n')
+      ->condition('n.uid', $user->uid)
+      ->condition('n.type', 'totoz')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    $data = array(
+      'username' => $user->name,
+      'joined' => date('c', $user->created),
+      'seen' => date('c', $user->access),
+      'totoz' => $totoz,
+    );
+
+    $user = $data;
+  }
+}
+
+function totoz_list_user_totozes($user, $format) {
+    //->fieldCondition('field_number', 'value', '1', '=');
+
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->addTag('totoz_nsfw')
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'totoz')
+    ->propertyCondition('status', 1, '=')
+    ->propertyCondition('uid', $user->uid, '=')
+    ->propertyOrderBy('created', 'DESC')
+    ->pager(50)
+    ->execute();
+
+  $nids = array();
+  if (!empty($result['node'])) foreach ($result['node'] as $totoz) {
+    $nids[] = $totoz->nid;
+  }
+
+  if (count($nids)) {
+    $nodes = entity_load('node', $nids);
+    return totoz_render($nodes, $format, array('total' => count($nodes)));
+    return theme('totoz_list', array('nodes' => $nodes)).theme('pager');
+  } else {
+    return t('This user has not created any totoz.');
+  }
+}
+
+function totoz_list_tag_totozes($tid, $format) {
+    //->fieldCondition('field_number', 'value', '1', '=');
+
+  $limit = 50;
+  $order = array('t.created' => 'DESC');
+
+  $query = db_select('taxonomy_index', 't');
+  $query->addTag('node_access');
+  $query->join('node', 'n', 'n.nid = t.nid');
+  $query->addTag('totoz_nsfw');
+  $query->condition('tid', $tid);
+  $count_query = clone $query;
+  $count_query->addExpression('COUNT(t.nid)');
+
+  $query = $query->extend('PagerDefault');
+  $query = $query->limit($limit);
+  $query->setCountQuery($count_query);
+  $query->addField('t', 'nid');
+  foreach ($order as $field => $direction) {
+    $query->orderBy($field, $direction);
+    // ORDER BY fields need to be loaded too, assume they are in the form
+    // table_alias.name
+    list($table_alias, $name) = explode('.', $field);
+    $query->addField($table_alias, $name);
+  }
+  $nids = $query->execute()->fetchCol();
+
+  if ($nids) {
+    global $pager_total_items;
+    $total_items = $pager_total_items[0];
+    $nodes = node_load_multiple($nids);
+
+    return totoz_render($nodes, $format, array('total' => $total_items));
+  } else {
+    return t('No totoz having this tag found.');
+  }
+}
+
+function totoz_list_totozes($format) {
+    //->fieldCondition('field_number', 'value', '1', '=');
+
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->addTag('totoz_nsfw')
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'totoz')
+    ->propertyCondition('status', 1, '=')
+    ->propertyOrderBy('changed', 'DESC')
+    ->pager(50)
+    ->execute();
+
+  $nids = array();
+  if (isset($result['node'])) foreach ($result['node'] as $totoz) {
+    $nids[] = $totoz->nid;
+  }
+  $nodes = entity_load('node', $nids);
+
+  global $pager_total_items;
+  return totoz_render($nodes, $format, array('total' => $pager_total_items[0]));
+}
+
+function totoz_search_totozes($format) {
+  if (isset($_GET['keys'])) {
+    $terms = $_GET['keys'];
+  } else {
+    $terms = $_GET['terms'];
+  }
+
+  $offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
+  $nodes = array();
+
+  $nids = array();
+
+  // Exact title match
+  $query = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->addTag('totoz_nsfw')
+    ->condition('n.status', 1)
+    ->condition('n.type', 'totoz')
+    ->condition('n.title', $terms);
+
+  // Partial title match
+  $subquery = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->addTag('totoz_nsfw')
+    ->condition('n.status', 1)
+    ->condition('n.type', 'totoz')
+    ->condition('n.title', $terms . '%', 'LIKE');
+
+  $query->union($subquery, 'UNION');
+
+  $nids = $query->execute()->fetchAllKeyed(0, 0);
+
+
+  $query = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->addTag('totoz_nsfw')
+    ->condition('n.status', 1)
+    ->condition('n.type', 'totoz');
+  $query->join('taxonomy_index', 'ti', 'n.nid = ti.nid');
+  $query->join('taxonomy_term_data', 'ttd', 'ti.tid = ttd.tid');
+
+  foreach (explode(' ', $terms) as $term) {
+    $query->condition('ttd.name', $term, '=');
+  }
+
+  $results = $query->execute()
+    ->fetchAllKeyed(0, 0);
+
+  $nids = array_merge($nids, $results);
+
+
+  //*
+  // ngrams title match
+  $query = search_api_query('default_fuzzysearch_index')
+    ->keys($terms);
+  $results = $query->execute();
+
+  $nids = array_merge($nids, array_keys($results['results']));
+  //*/
+
+
+  $nodes = entity_load('node', $nids);
+
+  /*
+  // Build matching conditions
+  $query = db_select('search_index', 'i', array('target' => 'slave'))->extend('SearchQuery');
+
+
+  if (!$offset) {
+    $query = $query->extend('PagerDefault');
+  }
+
+  $query->join('node', 'n', 'n.nid = i.sid');
+  $query
+    ->addTag('totoz_nsfw')
+    ->condition('n.status', 1)
+    ->condition('n.type', 'totoz')
+    ->addTag('node_access')
+    ->searchExpression($terms, 'node');
+
+  // Insert special keywords.
+  $query->setOption('type', 'n.type');
+  $query->setOption('language', 'n.language');
+  if ($query->setOption('term', 'ti.tid')) {
+    $query->join('taxonomy_index', 'ti', 'n.nid = ti.nid');
+  }
+  // Only continue if the first pass query matches.
+  if ($query->executeFirstPass()) {
+    // Add the ranking expressions.
+    _node_rankings($query);
+
+    if ($offset) {
+      $total_items = $query->countQuery()->execute()->fetchField();
+      $query->range($offset, 50);
+    } else {
+      $query->limit(50);
+    }
+
+    // Load results.
+    $find = $query
+      ->execute();
+
+    $nids = array();
+    foreach ($find as $item) {
+      $nids[] = $item->sid;
+    }
+    dpm($nids);
+    $nodes = entity_load('node', $nids);
+  }
+  */
+
+  if (!$offset) {
+    global $pager_total_items;
+    $total_items = $pager_total_items[0];
+  } else {
+    $total_items = count($nodes);
+  }
+
+  if (isset($_GET['compat']) and $_GET['compat'] == 'tribune1') {
+    $format = 'xml-tribune1';
+  }
+
+  return totoz_render($nodes, $format, array('total' => $total_items));
+}
+
+function totoz_search_users($format) {
+  $terms = $_GET['terms'];
+  $offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
+
+  // Build matching conditions
+  $query = db_select('users');
+  $query->fields('users', array('uid'));
+  $query->condition('name', '%' . db_like($terms) . '%', 'LIKE')
+    ->condition('status', 1);
+
+  if ($offset) {
+    $total_items = $query->countQuery()->execute()->fetchField();
+    $query->range($offset, 50);
+  } else {
+    $query = $query->extend('PagerDefault');
+    $query->limit(50);
+  }
+
+  $uids = $query
+    ->execute()
+    ->fetchCol();
+
+  $users = user_load_multiple($uids);
+
+  if (!$offset) {
+    global $pager_total_items;
+    $total_items = $pager_total_items[0];
+  }
+
+  return totoz_render_users($users, $format, array('total' => $total_items));
+}
+
+function totoz_render($nodes, $format, $extra_arguments = array()) {
+  $extra_arguments['nodes'] = $nodes;
+  switch ($format) {
+    case 'xml':
+      return theme('totoz_list_xml', $extra_arguments);
+    case 'xml-tribune1':
+      return theme('totoz_list_xml_tribune1', $extra_arguments);
+    case 'backend':
+      return theme('totoz_list_backend', $extra_arguments);
+    case 'rss':
+      return theme('totoz_list_rss', $extra_arguments);
+    case 'json':
+      return theme('totoz_list_json', $extra_arguments);
+    default:
+      return theme('totoz_list', $extra_arguments).theme('pager');
+  }
+}
+
+function totoz_render_users($users, $format, $extra_arguments = array()) {
+  $extra_arguments['users'] = $users;
+  switch ($format) {
+    case 'xml':
+      return theme('totoz_list_users_xml', $extra_arguments);
+    case 'json':
+      return theme('totoz_list_users_json', $extra_arguments);
+    default:
+      return theme('totoz_list_users', $extra_arguments).theme('pager');
+  }
+}
+
+function totoz_user_totozes() {
+  global $user;
+
+  if ($user->uid == 0) {
+    return drupal_not_found();
+  } else {
+    drupal_goto('user/' . $user->uid . '/totoz');
+  }
+}
+
+function _totoz_user_is_logged_in() {
+  global $user;
+  return $user->uid > 0;
+}
+
+/**
+ * Implements hook_form_alter().
+ * Add some validation on image upload.
+ */
+function totoz_form_totoz_node_form_alter(&$form, &$form_state, $form_id) {
+  if (!isset($form_state['node']->nid)) {
+    $form['title']['#element_validate'] = array(
+      'totoz_validate_title_characters',
+      'totoz_validate_title_uniqueness',
+    );
+  } else {
+    $form['title']['#disabled'] = TRUE;
+    $form['title']['#attributes']['readonly'] = 'true';
+  }
+  $form['title']['#description'] = t('Only unaccented letters, numbers, dashes (<strong>-</strong>), underscores (<strong>_</strong>) and spaces are allowed for this field.');
+
+  $form['field_image'][LANGUAGE_NONE][0]['#upload_validators']['totoz_validate_image'] = array(
+    '200x200',
+  );
+
+  // Let's add a description here.
+  if ($form['field_image'][LANGUAGE_NONE][0]['#description']) {
+    $form['field_image'][LANGUAGE_NONE][0]['#description'] .= '<br />' .
+      t('Image dimensions must be at most <strong>200x200</strong>.');
+  }
+}
+
+function totoz_node_view_alter(&$build) {
+  if ($build['#bundle'] == 'totoz') {
+    $node = $build['#node'];
+
+    $nsfw = $node->field_nsfw[LANGUAGE_NONE][0]['value'];
+    if ($nsfw and !_totoz_nsfw()) {
+      $build['field_image'] = array(
+        '#markup' => '<div>' . t('<p>This totoz is flagged as not safe for work.</p><p>It is only accessible from !nsfwurl.</p>', array(
+          '!nsfwurl' => '<a href="http://nsfw.totoz.eu' . url('node/' . $node->nid) . '">nsfw.totoz.eu</a>',
+        )) . '</div>',
+        '#weight' => 2,
+      );
+    } else {
+      $build['field_image'] = array(
+        '#markup' => '<div><img src="' . totoz_img($node) . '" alt="" /></div>',
+        '#weight' => 2,
+      );
+    }
+
+    $form = drupal_get_form('totoz_node_flag_nsfw_form', $node);
+    $build['nsfw_form'] = array(
+      '#markup' => drupal_render($form),
+      '#weight' => 3,
+    );
+  }
+}
+
+function totoz_node_flag_nsfw_form($form, $form_state, $node) {
+  global $user;
+
+  $nsfw = $node->field_nsfw[LANGUAGE_NONE][0]['value'];
+
+  return array(
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => $nsfw ? t('Flag as safe for work') : t('Flag as not safe for work'),
+      '#access' => $user->uid > 0,
+      '#submit' => array('totoz_node_flag_nsfw_form_submit'),
+    ),
+    'node' => array(
+      '#type' => 'value',
+      '#value' => $node,
+    ),
+    'new-status' => array(
+      '#type' => 'value',
+      '#value' => !$nsfw,
+    ),
+  );
+}
+
+function totoz_node_flag_nsfw_form_submit($form, $form_state) {
+  $node = $form_state['values']['node'];
+  $new_status = $form_state['values']['new-status'];
+
+  $node->field_nsfw[LANGUAGE_NONE][0]['value'] = $new_status ? 1 : 0;
+  node_save($node);
+
+  if ($new_status == 1) {
+    drupal_set_message(t('This totoz has been flagged as not safe for work. It is now only accessible from !nsfwurl.', array(
+      '!nsfwurl' => '<a href="http://nsfw.totoz.eu' . url('node/' . $node->nid) . '">nsfw.totoz.eu</a>',
+    )));
+  } else {
+    drupal_set_message(t('This totoz has been flagged as safe for work. It is now accessible from !sfwurl.', array(
+      '!sfwurl' => '<a href="https://totoz.eu' . url('node/' . $node->nid) . '">totoz.eu</a>',
+    )));
+  }
+
+  if ($new_status == 1 and !_totoz_nsfw()) {
+    drupal_goto('<front>');
+  }
+}
+
+function totoz_validate_title_characters($element, &$form_state, $form) {
+  if (!preg_match('/^[A-Za-z0-9_ -]+$/', $element['#value'])) {
+    form_error($element,
+      t('Please use only unaccented letters, numbers, dashes (<strong>-</strong>), underscores (<strong>_</strong>) and spaces for the name.'));
+  }
+}
+
+function totoz_validate_title_uniqueness($element, &$form_state, $form) {
+  if ($nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $element['#value'])) and count($nodes)) {
+    form_error($element,
+      t('A totoz with this name already exists, please choose another one.'));
+  }
+}
+
+function totoz_validate_image(stdClass $file, $maximum_dimensions) {
+  $errors = array();
+
+  if ($info = image_get_info($file->uri)) {
+    list($width, $height) = explode('x', $maximum_dimensions);
+    if ($info['width'] > $width || $info['height'] > $height) {
+      $errors[] = t('The image is too large; the maximum dimensions are %dimensions pixels.', array('%dimensions' => $maximum_dimensions));
+    }
+  }
+
+  return $errors;
+}
+
+function totoz_config_page() {
+  return drupal_get_form('totoz_config_form');
+}
+
+function totoz_config_form($form, &$form_state) {
+  return array(
+    'import-from-totozeu' => array(
+      '#type' => 'submit',
+      '#value' => t('Import from totoz.eu'),
+      '#submit' => array('totoz_import_from_totozeu'),
+    ),
+  );
+}
+
+function totoz_drush_delete_all_totozes() {
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'totoz')
+    ->execute();
+
+  $nids = array();
+  if (isset($result['node'])) foreach ($result['node'] as $totoz) {
+    node_delete($totoz->nid);
+    echo ".";
+  }
+  echo "\n";
+}
+
+function totoz_drush_fix_users() {
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'user')
+    ->propertyCondition('uid', '0', '>')
+    ->execute();
+
+  $uids = array();
+  if (isset($result['user'])) foreach ($result['user'] as $record) {
+    $user = user_load($record->uid);
+    user_save($user);
+    echo ".";
+  }
+  echo "\n";
+}
+
+function totoz_drush_import() {
+  $batch = array(
+    'title' => t('Importing'),
+    'progress_message' => t('Importing from totoz.eu'),
+    'operations' => array(
+      array('totoz_import_from_totozeu_process', array()),
+    ),
+    'finished' => 'totoz_import_from_totozeu_finished',
+    'progressive' => FALSE,
+  );
+
+  batch_set($batch);
+  drush_backend_batch_process();
+}
+
+function totoz_import_from_totozeu() {
+  $batch = array(
+    'title' => t('Importing'),
+    'progress_message' => t('Importing from totoz.eu'),
+    'operations' => array(
+      array('totoz_import_from_totozeu_process', array()),
+    ),
+    'finished' => 'totoz_import_from_totozeu_finished',
+  );
+
+  batch_set($batch);
+  batch_process();
+}
+
+function totoz_import_from_totozeu_process(&$context) {
+  $url = 'http://totoz.eu/totozes.xml';
+  $increment = 40;
+
+  if (empty($context['sandbox']['progress'])) {
+    $context['finished'] = 0;
+    $context['sandbox']['progress'] = 0;
+    $context['sandbox']['start'] = time();
+
+    $res = drupal_http_request($url);
+    try {
+      $xml = new SimpleXMLElement($res->data);
+    }
+    catch (Exception $e) {
+      return;
+    }
+    $context['sandbox']['max'] = (string)$xml['total'];
+  }
+
+  $url = $url . '/' . $context['sandbox']['progress'] . '/' . $increment;
+  $res = drupal_http_request($url);
+  try {
+    $xml = new SimpleXMLElement($res->data);
+  }
+  catch (Exception $e) {
+    return;
+  }
+
+  $vocabulary = taxonomy_vocabulary_load(1); // "Tags" vid
+
+  foreach ($xml->totoz as $totoz) {
+    if ($nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $totoz->name)) and count($nodes)) {
+      continue;
+    }
+    if ($user = user_load_by_name($totoz->username)) {
+      $created = strtotime($totoz->created);
+      $node = new stdClass();
+      $node->type = 'totoz';
+      $node->title = $totoz->name;
+      $node->created = $created;
+      $node->uid = $user->uid;
+      $node->field_nsfw = array(LANGUAGE_NONE => array(0 => array('value' => 0)));
+      $node->field_tags = array(LANGUAGE_NONE => array());
+      foreach ($totoz->tags->tag as $tag) {
+        $tag = (string)$tag;
+        if ($tag == 'pascliquai') {
+          $node->field_nsfw[LANGUAGE_NONE][0]['value'] = 1;
+        }
+
+        $terms = taxonomy_term_load_multiple(array(), array('vid' => $vocabulary->vid, 'name' => $tag));
+
+        if (empty($terms)) {
+          $term = (object)array(
+            'vid' => (int)$vocabulary->vid,
+            'name' => $tag,
+            'description' => '',
+            'format' => '',
+            'weight' => 0,
+            'vocabulary_machine_name' => 'tags',
+          );
+          taxonomy_term_save($term);
+        } else {
+          $term = array_pop($terms);
+        }
+
+        $node->field_tags[LANGUAGE_NONE][] = array(
+          'tid' => $term->tid,
+        );
+      }
+
+      $src = '/home/seeschloss/totoz.ssz.fr/sites/default/files/totoz/nsfw/' . strtolower($node->title) . '.gif';
+      $dst = 'public://totoz/' . strtolower(substr($node->title, 0, 230)) . '.gif';
+      if (file_exists($src)) {
+        $contents = file_get_contents($src);
+      } else {
+        $contents = file_get_contents('http://totoz.eu/gif/' . strtolower($node->title) . '.gif');
+      }
+
+      $file = file_save_data($contents, $dst, FILE_EXISTS_RENAME);
+      touch(drupal_realpath($file->uri), $node->created);
+      $node->field_image = array(
+        LANGUAGE_NONE => array(
+          0 => array(
+            'fid' => $file->fid,
+          ),
+        ),
+      );
+
+      node_save($node);
+      $time = time() - $context['sandbox']['start'];
+      $speed = $context['sandbox']['progress'] > 0 ? round($time / $context['sandbox']['progress'], 2) : 0;
+      $context['sandbox']['progress']++;
+      $context['message'] = t("%totoz of %count (%n/s) %title", array('%totoz' => $context['sandbox']['progress'], '%count' => $context['sandbox']['max'], '%title' => $node->title, '%n' => $speed));
+      $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
+    }
+  }
+}
+
+function totoz_import_from_totozeu_finished($success) {
+}
+
+function totoz_node_presave($node) {
+  if ($node->type == 'totoz') {
+    $file = file_load($node->field_image[LANGUAGE_NONE][0]['fid']);
+    $path = drupal_realpath($file->uri);
+    $filename_lc = strtolower($node->title) . '.gif';
+
+    if (!is_link(TOTOZ_NSFW_PATH . '/' . $filename_lc) && !symlink($path, TOTOZ_NSFW_PATH . '/' . $filename_lc)) {
+      watchdog('totoz', t('Error creating symlink for %totoz (%path)', array('%totoz', $node->title, '%path' => TOTOZ_NSFW_PATH . '/' . $filename_lc)), WATCHDOG_WARNING);
+    }
+
+    $nsfw = $node->field_nsfw[LANGUAGE_NONE][0]['value'];
+    if ($nsfw) {
+      $node->promote = 0;
+      if (file_exists(TOTOZ_SFW_PATH . '/' . $filename_lc)) {unlink(TOTOZ_SFW_PATH . '/' . $filename_lc);}
+    } else {
+      $node->promote = 1;
+      if (!is_link(TOTOZ_SFW_PATH . '/' . $filename_lc)) {symlink($path, TOTOZ_SFW_PATH . '/' . $filename_lc);}
+    }
+  }
+}
+
+function totoz_node_delete($node) {
+  if ($node->type == 'totoz') {
+    $filename_lc = strtolower($node->title) . '.gif';
+    @unlink(TOTOZ_SFW_PATH  . '/' . $filename_lc);
+    @unlink(TOTOZ_NSFW_PATH . '/' . $filename_lc);
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function totoz_block_info() {
+  return array(
+    'totoz-search' => array(
+      'info' => t('Totoz search block'),
+      'cache' => DRUPAL_CACHE_GLOBAL,
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function totoz_block_view($delta) {
+  switch ($delta) {
+    case 'totoz-search':
+      return array(
+        'subject' => '<none>',
+        'content' => drupal_get_form('totoz_search_block_form'),
+      );
+      break;
+  }
+}
+
+function totoz_search_block_form($form, &$form_state) {
+  return array(
+    'terms' => array(
+      '#prefix' => '<div class="input-append">',
+      '#type' => 'textfield',
+      '#attributes' => array(
+        'type' => 'search',
+        'autofocus' => 'true',
+        'class' => array('search-query', 'span2'),
+        'placeholder' => t('Totoz name, tag...'),
+      ),
+    ),
+    'submit' => array(
+      '#value' => t('Search'),
+      '#type' => 'submit',
+      '#attributes' => array(
+        'type' => 'button',
+        'class' => array('btn'),
+      ),
+      '#submit' => array('totoz_search_block_form_redirect'),
+      '#suffix' => '</div>',
+    ),
+  );
+}
+
+function totoz_search_block_form_redirect($form, $form_state) {
+  drupal_goto('search', array(
+    'query' => array(
+      'terms' => $form_state['values']['terms'],
+    ),
+  ));
+}
+
+
+/**
+ * Views UI needs jQuery 1.5
+ */
+
+/**
+  * Implements hook_module_implements_alter().
+  */
+function totoz_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'library_alter') {
+    // Move jquery update to the end. This will make sure our hook_library_alter
+    // is always called before the jquery_update.
+    $jquery_update = $implementations['jquery_update'];
+    unset($implementations['jquery_update']);
+    $implementations['jquery_update'] = $jquery_update;
+  }
+}
+
+/**
+ * Implements hook_library_alter().
+ */
+function totoz_library_alter(&$libraries, $module) {
+  // If it is an admin path all we want to do is change the global $conf
+  // variable so when jquery_update runs right after us it will use 1.5.
+  if (path_is_admin(current_path())) {
+    // Modifying global $conf variable, can be dangerous. Be carefull.
+    global $conf;
+    $conf['jquery_update_jquery_version'] = '1.5';
+  }
+}
+
+/**
+ * Custom delivery callbacks
+ */
+
+function totoz_deliver_json($page_callback_result) {
+  // Emit the correct charset HTTP header, but not if the page callback
+  // result is NULL, since that likely indicates that it printed something
+  // in which case, no further headers may be sent, and not if code running
+  // for this page request has already set the content type header.
+  if (isset($page_callback_result) && is_null(drupal_get_http_header('Content-Type'))) {
+    drupal_add_http_header('Content-Type', 'application/json; charset=utf-8');
+  }
+
+  if (is_array($page_callback_result)) {
+    echo drupal_json_encode($page_callback_result);
+  } else {
+    echo $page_callback_result;
+  }
+
+  drupal_page_footer();
+}
+
+function totoz_deliver_xml($page_callback_result) {
+  // Emit the correct charset HTTP header, but not if the page callback
+  // result is NULL, since that likely indicates that it printed something
+  // in which case, no further headers may be sent, and not if code running
+  // for this page request has already set the content type header.
+  if (isset($page_callback_result) && is_null(drupal_get_http_header('Content-Type'))) {
+    drupal_add_http_header('Content-Type', 'application/xml; charset=utf-8');
+  }
+
+  if (is_array($page_callback_result)) {
+    echo format_xml_elements($page_callback_result);
+  } else {
+    echo $page_callback_result;
+  }
+
+  drupal_page_footer();
+}
+
+function totoz_deliver_rss($page_callback_result) {
+  // Emit the correct charset HTTP header, but not if the page callback
+  // result is NULL, since that likely indicates that it printed something
+  // in which case, no further headers may be sent, and not if code running
+  // for this page request has already set the content type header.
+  if (isset($page_callback_result) && is_null(drupal_get_http_header('Content-Type'))) {
+    drupal_add_http_header('Content-Type', 'application/rss+xml; charset=utf-8');
+  }
+
+  if (is_array($page_callback_result)) {
+    echo format_xml_elements($page_callback_result);
+  } else {
+    echo $page_callback_result;
+  }
+
+  drupal_page_footer();
+}
+
+function _totoz_human_filesize($bytes, $decimals = 2) {
+  $sz = ' kMGTP';
+  $factor = floor((strlen($bytes) - 1) / 3);
+  return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . ' ' . @$sz[$factor] . 'B';
+}
+
+function _totoz_nsfw() {
+  $totoz_nsfw = &drupal_static(__FUNCTION__);
+
+  if (!isset($totoz_nsfw)) {
+    global $base_url;
+    if (strpos($base_url, 'nsfw') === FALSE) {
+      $totoz_nsfw = FALSE;
+    } else {
+      $totoz_nsfw = TRUE;
+    }
+  }
+
+  return $totoz_nsfw;
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+function totoz_query_totoz_nsfw_alter($query) {
+  if (!_totoz_nsfw()) {
+    $query->condition('promote', '1', '=');
+  }
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+function totoz_query_search_api_db_search_alter($query) {
+}
+
+function totoz_not_found($totoz = NULL) {
+  if (!isset($totoz) and isset($_GET['totoz'])) {
+    $totoz = $_GET['totoz'];
+  }
+
+  $totoz = strtolower(basename($totoz, '.gif'));
+
+  if (!_totoz_nsfw()) {
+    $nsfw_file = TOTOZ_NSFW_PATH . '/' . $totoz . '.gif';
+    if (file_exists($nsfw_file)) {
+        header('HTTP/1.0 403 Not Safe For Work');
+        header('Content-Type: text/plain');
+        echo 'This totoz is not safe for work.';
+        drupal_exit();
+    }
+  }
+
+  header('HTTP/1.0 404 Not Found');
+  header('Content-Type: text/plain');
+  echo 'This totoz does not exist.';
+  drupal_exit();
+}
