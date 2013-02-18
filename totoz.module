@@ -496,119 +496,123 @@ function totoz_search_totozes($format) {
     $terms = $_GET['terms'];
   }
 
-  $offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
-  $nodes = array();
-
-  $nids = array();
-
-  // Exact title match
-  $query = db_select('node', 'n')
-    ->fields('n', array('nid'))
-    ->addTag('totoz_nsfw')
-    ->condition('n.status', 1)
-    ->condition('n.type', 'totoz')
-    ->condition('n.title', $terms);
-
-  // Partial title match
-  $subquery = db_select('node', 'n')
-    ->fields('n', array('nid'))
-    ->addTag('totoz_nsfw')
-    ->condition('n.status', 1)
-    ->condition('n.type', 'totoz')
-    ->condition('n.title', $terms . '%', 'LIKE');
-
-  $query->union($subquery, 'UNION');
-
-  $nids = $query->execute()->fetchAllKeyed(0, 0);
-
-
-  $query = db_select('node', 'n')
-    ->fields('n', array('nid'))
-    ->addTag('totoz_nsfw')
-    ->condition('n.status', 1)
-    ->condition('n.type', 'totoz');
-  $query->join('taxonomy_index', 'ti', 'n.nid = ti.nid');
-  $query->join('taxonomy_term_data', 'ttd', 'ti.tid = ttd.tid');
-
-  foreach (explode(' ', $terms) as $term) {
-    $query->condition('ttd.name', $term, '=');
-  }
-
-  $results = $query->execute()
-    ->fetchAllKeyed(0, 0);
-
-  $nids = array_merge($nids, $results);
-
-
-  //*
-  // ngrams title match
-  $query = search_api_query('default_fuzzysearch_index')
-    ->keys($terms);
-  $results = $query->execute();
-
-  $nids = array_merge($nids, array_keys($results['results']));
-  //*/
-
-
-  $nodes = entity_load('node', $nids);
-
-  /*
-  // Build matching conditions
-  $query = db_select('search_index', 'i', array('target' => 'slave'))->extend('SearchQuery');
-
-
-  if (!$offset) {
-    $query = $query->extend('PagerDefault');
-  }
-
-  $query->join('node', 'n', 'n.nid = i.sid');
-  $query
-    ->addTag('totoz_nsfw')
-    ->condition('n.status', 1)
-    ->condition('n.type', 'totoz')
-    ->addTag('node_access')
-    ->searchExpression($terms, 'node');
-
-  // Insert special keywords.
-  $query->setOption('type', 'n.type');
-  $query->setOption('language', 'n.language');
-  if ($query->setOption('term', 'ti.tid')) {
-    $query->join('taxonomy_index', 'ti', 'n.nid = ti.nid');
-  }
-  // Only continue if the first pass query matches.
-  if ($query->executeFirstPass()) {
-    // Add the ranking expressions.
-    _node_rankings($query);
-
-    if ($offset) {
-      $total_items = $query->countQuery()->execute()->fetchField();
-      $query->range($offset, 50);
-    } else {
-      $query->limit(50);
-    }
-
-    // Load results.
-    $find = $query
-      ->execute();
+  if (!empty($terms)) {
+    $offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
+    $nodes = array();
 
     $nids = array();
-    foreach ($find as $item) {
-      $nids[] = $item->sid;
+
+    // Exact title match
+    $query = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->addTag('totoz_nsfw')
+      ->condition('n.status', 1)
+      ->condition('n.type', 'totoz')
+      ->condition('n.title', $terms);
+
+    // Partial title match
+    $subquery = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->addTag('totoz_nsfw')
+      ->condition('n.status', 1)
+      ->condition('n.type', 'totoz')
+      ->condition('n.title', $terms . '%', 'LIKE');
+
+    $query->union($subquery, 'UNION');
+
+    $nids = $query->execute()->fetchAllKeyed(0, 0);
+
+
+    $query = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->addTag('totoz_nsfw')
+      ->condition('n.status', 1)
+      ->condition('n.type', 'totoz');
+    $query->join('taxonomy_index', 'ti', 'n.nid = ti.nid');
+    $query->join('taxonomy_term_data', 'ttd', 'ti.tid = ttd.tid');
+
+    foreach (explode(' ', $terms) as $term) {
+      $query->condition('ttd.name', $term, '=');
     }
-    dpm($nids);
+
+    $results = $query->execute()
+      ->fetchAllKeyed(0, 0);
+
+    $nids = array_merge($nids, $results);
+
+
+    //*
+    // ngrams title match
+    $query = search_api_query('default_fuzzysearch_index')
+      ->keys($terms);
+    $results = $query->execute();
+
+    $nids = array_merge($nids, array_keys($results['results']));
+    //*/
+
+
     $nodes = entity_load('node', $nids);
-  }
-  */
 
-  if (!$offset) {
-    global $pager_total_items;
-    $total_items = $pager_total_items[0];
+    /*
+    // Build matching conditions
+    $query = db_select('search_index', 'i', array('target' => 'slave'))->extend('SearchQuery');
+
+
+    if (!$offset) {
+      $query = $query->extend('PagerDefault');
+    }
+
+    $query->join('node', 'n', 'n.nid = i.sid');
+    $query
+      ->addTag('totoz_nsfw')
+      ->condition('n.status', 1)
+      ->condition('n.type', 'totoz')
+      ->addTag('node_access')
+      ->searchExpression($terms, 'node');
+
+    // Insert special keywords.
+    $query->setOption('type', 'n.type');
+    $query->setOption('language', 'n.language');
+    if ($query->setOption('term', 'ti.tid')) {
+      $query->join('taxonomy_index', 'ti', 'n.nid = ti.nid');
+    }
+    // Only continue if the first pass query matches.
+    if ($query->executeFirstPass()) {
+      // Add the ranking expressions.
+      _node_rankings($query);
+
+      if ($offset) {
+        $total_items = $query->countQuery()->execute()->fetchField();
+        $query->range($offset, 50);
+      } else {
+        $query->limit(50);
+      }
+
+      // Load results.
+      $find = $query
+        ->execute();
+
+      $nids = array();
+      foreach ($find as $item) {
+        $nids[] = $item->sid;
+      }
+      dpm($nids);
+      $nodes = entity_load('node', $nids);
+    }
+    */
+
+    if (!$offset) {
+      global $pager_total_items;
+      $total_items = $pager_total_items[0];
+    } else {
+      $total_items = count($nodes);
+    }
+
+    if (isset($_GET['compat']) and $_GET['compat'] == 'tribune1') {
+      $format = 'xml-tribune1';
+    }
   } else {
-    $total_items = count($nodes);
-  }
-
-  if (isset($_GET['compat']) and $_GET['compat'] == 'tribune1') {
-    $format = 'xml-tribune1';
+    $nodes = array();
   }
 
   return totoz_render($nodes, $format, array('total' => $total_items));
