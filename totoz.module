@@ -1002,7 +1002,8 @@ function totoz_node_presave($node) {
     $path = drupal_realpath($file->uri);
     $filename_lc = strtolower($node->title) . '.gif';
 
-    if (!is_link(TOTOZ_NSFW_PATH . '/' . $filename_lc) && !symlink($path, TOTOZ_NSFW_PATH . '/' . $filename_lc)) {
+    @unlink(TOTOZ_NSFW_PATH . '/' . $filename_lc);
+    if (!symlink($path, TOTOZ_NSFW_PATH . '/' . $filename_lc)) {
       watchdog('totoz', t('Error creating symlink for %totoz (%path)', array('%totoz', $node->title, '%path' => TOTOZ_NSFW_PATH . '/' . $filename_lc)), WATCHDOG_WARNING);
     }
 
@@ -1012,7 +1013,8 @@ function totoz_node_presave($node) {
       if (file_exists(TOTOZ_SFW_PATH . '/' . $filename_lc)) {unlink(TOTOZ_SFW_PATH . '/' . $filename_lc);}
     } else {
       $node->promote = 1;
-      if (!is_link(TOTOZ_SFW_PATH . '/' . $filename_lc)) {symlink($path, TOTOZ_SFW_PATH . '/' . $filename_lc);}
+      @unlink(TOTOZ_SFW_PATH . '/' . $filename_lc);
+      symlink($path, TOTOZ_SFW_PATH . '/' . $filename_lc);
     }
   }
 }
