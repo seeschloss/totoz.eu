@@ -12,7 +12,7 @@
   $totoz = array(
     'key' => 'post',
     'attributes' => array(
-      'id' => $mtime,
+      'id' => $totoz['nid'],
       'time' => date('YmdHis', $mtime),
     ),
     'value' => array(

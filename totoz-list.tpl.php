@@ -7,7 +7,7 @@
   <li class="<?php if ($totoz['nsfw']) {echo 'nsfw';} ?>">
     <article>
       <header>
-        <h2><span class="totoz-open">[:</span><?php echo $totoz['name'] ?><span class="totoz-close">]</span></h2>
+        <h2 title="<?php echo str_replace('"', "''", $totoz['name']) ?>"><span class="totoz-open">[:</span><?php echo $totoz['name'] ?><span class="totoz-close">]</span></h2>
       </header>
       <div>
         <?php echo l('<img src="' . $totoz['url'] . '" />', $details_path, array('html' => TRUE)) ?>
