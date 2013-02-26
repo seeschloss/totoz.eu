@@ -1,7 +1,7 @@
 <?php
 
-define('TOTOZ_SFW_PATH',  '/home/seeschloss/totoz.sauf.ca/sfw');
-define('TOTOZ_NSFW_PATH', '/home/seeschloss/totoz.sauf.ca/nsfw');
+define('TOTOZ_SFW_PATH',  '/home/seeschloss/totoz.eu/sfw');
+define('TOTOZ_NSFW_PATH', '/home/seeschloss/totoz.eu/nsfw');
 
 /**
  * Implements hook_menu().
@@ -502,6 +502,7 @@ function totoz_search_totozes($format) {
 
     $nids = array();
 
+    /*
     // Exact title match
     $query = db_select('node', 'n')
       ->fields('n', array('nid'))
@@ -516,7 +517,7 @@ function totoz_search_totozes($format) {
       ->addTag('totoz_nsfw')
       ->condition('n.status', 1)
       ->condition('n.type', 'totoz')
-      ->condition('n.title', $terms . '%', 'LIKE');
+      ->condition('n.title', '%' . $terms . '%', 'LIKE');
 
     $query->union($subquery, 'UNION');
 
@@ -539,15 +540,28 @@ function totoz_search_totozes($format) {
       ->fetchAllKeyed(0, 0);
 
     $nids = array_merge($nids, $results);
+    //*/
 
 
-    //*
+    /*
     // ngrams title match
     $query = search_api_query('default_fuzzysearch_index')
       ->keys($terms);
     $results = $query->execute();
 
     $nids = array_merge($nids, array_keys($results['results']));
+    //*/
+
+    //*
+    // Elasticsearch
+    $query = search_api_query('totozes')
+      ->keys($terms);
+    $query->range($offset, 50);
+    $results = $query->execute();
+
+    if (isset($results['results']) and is_array($results['results'])) {
+      $nids = array_merge($nids, array_keys($results['results']));
+    }
     //*/
 
 
