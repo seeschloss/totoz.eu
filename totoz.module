@@ -496,8 +496,10 @@ function totoz_search_totozes($format) {
     $terms = $_GET['terms'];
   }
 
+  $limit = 50;
+
   if (!empty($terms)) {
-    $offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
+    $offset = isset($_GET['offset']) ? $_GET['offset'] : pager_find_page() * $limit;
     $nodes = array();
 
     $nids = array();
@@ -556,8 +558,11 @@ function totoz_search_totozes($format) {
     // Elasticsearch
     $query = search_api_query('totozes')
       ->keys($terms);
-    $query->range($offset, 50);
+    $query->range($offset, $limit);
     $results = $query->execute();
+
+    $total_items = $results['result count'];
+    pager_default_initialize($total_items, $limit);
 
     if (isset($results['results']) and is_array($results['results'])) {
       $nids = array_merge($nids, array_keys($results['results']));
@@ -614,13 +619,6 @@ function totoz_search_totozes($format) {
       $nodes = entity_load('node', $nids);
     }
     */
-
-    if (!$offset) {
-      global $pager_total_items;
-      $total_items = $pager_total_items[0];
-    } else {
-      $total_items = count($nodes);
-    }
 
     if (isset($_GET['compat']) and $_GET['compat'] == 'tribune1') {
       $format = 'xml-tribune1';
@@ -1162,6 +1160,7 @@ function totoz_deliver_xml($page_callback_result) {
     drupal_add_http_header('Content-Type', 'application/xml; charset=utf-8');
   }
 
+  echo '<?xml version="1.0" encoding="UTF-8" ?>';
   if (is_array($page_callback_result)) {
     echo format_xml_elements($page_callback_result);
   } else {
