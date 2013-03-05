@@ -44,7 +44,13 @@ function totoz_hfr_import($totoz_name) {
     // We're the first process to reach this point
     // Let's create the totoz quickly and release the lock
     // and then serve it.
-    $node = totoz_hfr_create($totoz_name, $result);
+    $nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $totoz_name));
+    if (count($nodes)) {
+      // Well... for some reason, it already exists. Let's return it.
+      $node = reset($nodes);
+    } else {
+      $node = totoz_hfr_create($totoz_name, $result);
+    }
     lock_release('totoz_hfr_creation');
   } else {
     // Another process is already creating this totoz, so let's wait
