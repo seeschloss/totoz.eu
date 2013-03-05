@@ -1,9 +1,16 @@
 <?php
 
+// this is needed for iconv to transliterate correctly
+setlocale(LC_ALL, 'en_US.UTF-8');
+
 $sfw = isset($_GET['sfw']) ? $_GET['sfw'] : 'sfw';
-$totoz = str_replace('.gif', '', strtolower($_GET['totoz']));
+$totoz = str_replace('.gif', '', strtolower(urldecode($_GET['totoz'])));
 $totoz = str_replace('.png', '', strtolower($totoz));
 $totoz = str_replace('.jpg', '', strtolower($totoz));
+
+// let's ignore accents, they aren't allowed in totoz names
+$totoz = iconv('UTF-8', 'ASCII//TRANSLIT', $totoz);
+
 $try_hfr = TRUE;
 
 // I found using this goto was around 20% faster than the
@@ -20,7 +27,10 @@ $filepath_nsfw = '/home/seeschloss/totoz.eu/nsfw/' . $totoz . '.gif';
 
 if (file_exists($filepath)) {
   // Our totoz exists and is allowed (SFW or NSFW totoz/NSFW domain, or SFW totoz/SFW domain).
+
+  // Cleanup PHP default headers, I don't care about them.
   header_remove();
+
   $last_modified = filemtime($filepath);
   header('Last-Modified: ' . date('r', $last_modified));
   header('Expires: ' . date('r', strtotime('+15 days')));
@@ -51,7 +61,7 @@ if (file_exists($filepath)) {
   echo 'This totoz is not safe for work.';
 } else if ($try_hfr) {
   // The totoz doesn't exist, let's ask HFR.
-  $url = 'http://totoz.eu/totoz-from-hfr/' . $totoz;
+  $url = 'http://totoz.eu/totoz-from-hfr/' . rawurlencode($totoz);
   $result = file_get_contents($url);
     // don't bother with the call's result, we'll just make another pass
 
