@@ -1142,6 +1142,8 @@ function totoz_deliver_json($page_callback_result) {
     drupal_add_http_header('Content-Type', 'application/json; charset=utf-8');
   }
 
+  drupal_add_http_header('Access-Control-Allow-Origin', '*');
+
   if (is_array($page_callback_result)) {
     echo drupal_json_encode($page_callback_result);
   } else {
@@ -1159,6 +1161,8 @@ function totoz_deliver_xml($page_callback_result) {
   if (isset($page_callback_result) && is_null(drupal_get_http_header('Content-Type'))) {
     drupal_add_http_header('Content-Type', 'application/xml; charset=utf-8');
   }
+
+  drupal_add_http_header('Access-Control-Allow-Origin', '*');
 
   echo '<?xml version="1.0" encoding="UTF-8" ?>';
   if (is_array($page_callback_result)) {
