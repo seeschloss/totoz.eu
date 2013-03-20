@@ -75,6 +75,13 @@ function totoz_menu() {
       'delivery callback' => 'totoz_deliver_xml',
       'type' => MENU_CALLBACK,
     ),
+    'latest/config.xml' => array(
+      'title' => 'Latest totozes autoconf',
+      'page callback' => 'totoz_list_totozes_autoconf',
+      'access arguments' => array('access content'),
+      'delivery callback' => 'totoz_deliver_xml',
+      'type' => MENU_CALLBACK,
+    ),
     'search/xml' => array(
       'title' => 'Search results',
       'page callback' => 'totoz_search_totozes',
@@ -464,6 +471,42 @@ function totoz_list_tag_totozes($tid, $format) {
   } else {
     return t('No totoz having this tag found.');
   }
+}
+
+function totoz_list_totozes_autoconf() {
+  global $base_url;
+
+  return array(
+    array(
+      'key' => 'site',
+      'attributes' => array(
+        'name' => 'totoz',
+        'title' => 'Totoz',
+        'baseurl' => $base_url,
+        'version' => '1.0',
+      ),
+      'value' => array(
+        array(
+          'key' => 'board',
+          'attributes' => array(
+            'name' => 'board',
+            'title' => 'Totoz',
+          ),
+          'value' => array(
+            array(
+              'key' => 'backend',
+              'attributes' => array(
+                'path' => url('latest/remote.xml', array('absolute' => TRUE)),
+                'public' => 'true',
+                'tags_encoded' => 'false',
+                'refresh' => 3600,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 function totoz_list_totozes($format) {
