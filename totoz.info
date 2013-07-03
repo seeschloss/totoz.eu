@@ -3,6 +3,7 @@ description = "Small images sharing"
 core = 7.x
 package = Totoz
 files[] = totoz.module
+files[] = totoz.hfr.inc
 files[] = totoz.install
 php = 5.3
 

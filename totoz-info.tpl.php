@@ -1,4 +1,6 @@
 <dl>
+  <dt><?php echo t('Created') ?></dt>
+    <dd><?php echo date('d M Y H:i:s', $node->created) ?></dd>
   <dt><?php echo t('MD5 sum') ?></dt>
     <dd><?php echo $md5 ?></dd>
   <dt><?php echo t('Weight') ?></dt>

@@ -212,38 +212,43 @@ function totoz_technical_info($node, $format) {
   $file = file_load($node->field_image[LANGUAGE_NONE][0]['fid']);
   $path = drupal_realpath($file->uri);
 
-  $image = new Imagick($path);
-  $nbframes = $image->getNumberImages();
-  $animated = ($nbframes > 1);
+  try {
+    $image = new Imagick($path);
+    $nbframes = $image->getNumberImages();
+    $animated = ($nbframes > 1);
 
-  $length = 0;
-  $frames = array();
-  for ($i = 0 ; $i < $nbframes ; $i++) {
-    $image->setIteratorIndex($i);
+    $length = 0;
+    $frames = array();
+    for ($i = 0 ; $i < $nbframes ; $i++) {
+      $image->setIteratorIndex($i);
 
-    $frames[$i] = array(
-      'width' => $image->getImageWidth(),
-      'height' => $image->getImageHeight(),
-      'colors' => $image->getImageColors(),
-      'delay' => $image->getImageDelay()*10,
-    );
+      $frames[$i] = array(
+        'width' => $image->getImageWidth(),
+        'height' => $image->getImageHeight(),
+        'colors' => $image->getImageColors(),
+        'delay' => $image->getImageDelay()*10,
+      );
 
-    $length += $frames[$i]['delay'];
+      $length += $frames[$i]['delay'];
+    }
+
+    $md5 = md5_file($path);
+
+    $tags = array();
+    if (!empty($node->field_tags) and count($node->field_tags[LANGUAGE_NONE])) {
+      $tids = array();
+      foreach ($node->field_tags[LANGUAGE_NONE] as $tag) {
+        $tids[] = $tag['tid'];
+      }
+
+      foreach (taxonomy_term_load_multiple($tids) as $tid => $term) {
+        $tags[] = $term->name;
+      }
+      natsort($tags);
+    }
   }
-
-  $md5 = md5_file($path);
-
-  $tags = array();
-  if (!empty($node->field_tags) and count($node->field_tags[LANGUAGE_NONE])) {
-    $tids = array();
-    foreach ($node->field_tags[LANGUAGE_NONE] as $tag) {
-      $tids[] = $tag['tid'];
-    }
-
-    foreach (taxonomy_term_load_multiple($tids) as $tid => $term) {
-      $tags[] = $term->name;
-    }
-    natsort($tags);
+  catch (Exception $e) {
+    $image = new Imagick("/home/seeschloss/totoz.eu/sites/default/files/totoz/uxam.gif");
   }
 
   $theme_arguments = array(
@@ -510,6 +515,11 @@ function totoz_list_totozes_autoconf() {
 }
 
 function totoz_list_totozes($format) {
+  $max = 50;
+
+  if (!empty($_REQUEST['count'])) {
+    $max = (int)$_REQUEST['count'];
+  }
     //->fieldCondition('field_number', 'value', '1', '=');
 
   $query = new EntityFieldQuery;
@@ -518,8 +528,9 @@ function totoz_list_totozes($format) {
     ->entityCondition('entity_type', 'node')
     ->propertyCondition('type', 'totoz')
     ->propertyCondition('status', 1, '=')
-    ->propertyOrderBy('changed', 'DESC')
-    ->pager(50)
+    ->propertyOrderBy('created', 'DESC')
+//    ->propertyOrderBy('changed', 'DESC')
+    ->pager($max)
     ->execute();
 
   $nids = array();
@@ -540,6 +551,7 @@ function totoz_search_totozes($format) {
   }
 
   $limit = 50;
+  $total_items = 0;
 
   if (!empty($terms)) {
     $offset = isset($_GET['offset']) ? $_GET['offset'] : pager_find_page() * $limit;
@@ -588,16 +600,18 @@ function totoz_search_totozes($format) {
     //*/
 
 
-    /*
+    //*
     // ngrams title match
-    $query = search_api_query('default_fuzzysearch_index')
+    $query = search_api_query('default_node_index')
+    //$query = search_api_query('default_fuzzysearch_index')
       ->keys($terms);
     $results = $query->execute();
 
     $nids = array_merge($nids, array_keys($results['results']));
+    $total_items = $results['result count'];
     //*/
 
-    //*
+    /*
     // Elasticsearch
     $query = search_api_query('totozes')
       ->keys($terms);

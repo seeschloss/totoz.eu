@@ -4,7 +4,7 @@
  * Create a new totoz with user hfr (uid 4) from hardware.fr forums
  * if the totoz exists on HFR and if it doesn't exist on totoz.eu.
  */
-function totoz_hfr_import($totoz_name) {
+function totoz_hfr_import($totoz_name, $exit = TRUE) {
   $totoz_name = basename($totoz_name, '.gif');
 
   $main_url = 'http://forum-images.hardware.fr/images/perso/' .
@@ -24,12 +24,23 @@ function totoz_hfr_import($totoz_name) {
       $result = drupal_http_request($perso_url);
 
       if (!empty($result->error)) {
-        drupal_not_found();
-        drupal_exit();
+        watchdog('totoz', 'Error loading totoz perso !user #!n:<br /><pre>' . print_r($result, TRUE) . '</pre>', array('!user' => $totoz_perso[0], '!n' => $totoz_perso[1]), WATCHDOG_INFO);
+
+        if ($exit) {
+          drupal_not_found();
+          drupal_exit();
+        } else {
+          return NULL;
+        }
       }
     } else {
-      drupal_not_found();
-      drupal_exit();
+      watchdog('totoz', 'Error loading totoz !user:<br /><pre>' . print_r($result, TRUE) . '</pre>', array('!user' => $totoz_name), WATCHDOG_INFO);
+      if ($exit) {
+        drupal_not_found();
+        drupal_exit();
+      } else {
+        return NULL;
+      }
     }
   }
 
@@ -38,7 +49,7 @@ function totoz_hfr_import($totoz_name) {
   // several requests asking for it at exactly the same time. Chances
   // are several processes have reached this point at the same time
   // so we need a lock.
-  // All timeouts are 10s because it takes more than 10s then something
+  // All timeouts are 10s because if it takes more than 10s then something
   // is definitely broken and duplicating the totoz is better than nothing.
   if (lock_acquire('totoz_hfr_creation', 10)) {
     // We're the first process to reach this point
@@ -48,8 +59,10 @@ function totoz_hfr_import($totoz_name) {
     if (count($nodes)) {
       // Well... for some reason, it already exists. Let's return it.
       $node = reset($nodes);
+      watchdog('totoz', 'Totoz !totoz already existing (nid !nid) while lock is acquired, strange.', array('!totoz' => $totoz_name, '!nid' => $node->nid), WATCHDOG_INFO);
     } else {
       $node = totoz_hfr_create($totoz_name, $result);
+      watchdog('totoz', 'Totoz !totoz created from HFR (nid !nid), good.', array('!totoz' => $totoz_name, '!nid' => $node->nid), WATCHDOG_INFO);
     }
     lock_release('totoz_hfr_creation');
   } else {
@@ -60,24 +73,34 @@ function totoz_hfr_import($totoz_name) {
     $nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $totoz_name));
     if (count($nodes)) {
       $node = reset($nodes);
+      watchdog('totoz', 'Totoz !totoz now exists (nid !nid), good.', array('!totoz' => $totoz_name, '!nid' => $node->nid), WATCHDOG_INFO);
     } else {
       // Well... for some reason, it still doesn't exist. Let's return a 404.
-      drupal_not_found();
-      drupal_exit();
+      watchdog('totoz', 'Totoz !totoz still not existing after a ten seconds lock, weird.', array('!totoz' => $totoz_name), WATCHDOG_INFO);
+      if ($exit) {
+        drupal_not_found();
+        drupal_exit();
+      } else {
+        return NULL;
+      }
     }
   }
 
 
-  $file = file_load($node->field_image[LANGUAGE_NONE][0]['fid']);
-  $path = drupal_realpath($file->uri);
+  if ($exit) {
+    $file = file_load($node->field_image[LANGUAGE_NONE][0]['fid']);
+    $path = drupal_realpath($file->uri);
 
-  $fi = new finfo(FILEINFO_MIME_TYPE, '/home/seeschloss/totoz.eu/magic.mime');
-  $mime_type = $fi->file($path);
-  header('Content-Type: ' . $mime_type);
-  header('Content-Length: ' . filesize($path));
-  readfile($path);
+    $fi = new finfo(FILEINFO_MIME_TYPE, '/home/seeschloss/totoz.eu/magic.mime');
+    $mime_type = $fi->file($path);
+    header('Content-Type: ' . $mime_type);
+    header('Content-Length: ' . filesize($path));
+    readfile($path);
 
-  drupal_exit();
+    drupal_exit();
+  } else {
+    return $node;
+  }
 }
 
 /**
@@ -162,5 +185,82 @@ function totoz_hfr_tags($totoz_name) {
   }
 
   return $tags;
+}
+
+function totoz_hfr_update_new() {
+  $letters = 'abcdefghijklmnopqrstuvwxyz|';
+  $letters = 'tuvwxyz|';
+  $totozes = array();
+  for ($i = 0, $c = $letters[$i] ; $i < strlen($letters) ; $i++, $c = $letters[$i]) {
+    $new = totoz_hfr_get_all_totoz($c);
+    if (is_array($new)) {
+      foreach($new as $totoz) {
+        $nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $totoz));
+        if (count($nodes)) {
+          $node = reset($nodes);
+          print "Totoz [:$totoz] already exists: nid " . $node->nid . "\n";
+        } else {
+          print "Totoz [:$totoz] doesn't exist... ";
+          $node = totoz_hfr_import($totoz, FALSE);
+          print "created (nid " . $node->nid . ")\n";
+          sleep(1);
+        }
+      }
+      $totozes = array_merge($totozes, $new);
+    }
+  }
+}
+
+function totoz_hfr_get_all_totoz($letter) {
+  $url = 'http://forum.hardware.fr/wikismilies.php?config=hfr.inc&alpha=' . $letter . '&withouttag=0&threecol=1';
+
+  $result = drupal_http_request($url);
+
+  if (empty($result->error)) {
+    if (preg_match_all('/\&amp;page=([0-9]+)/', $result->data, $matches)) {
+      $pages = array($url);
+      foreach ($matches[1] as $page) {
+        $pages[] = $url . '&page=' . $page;
+      }
+
+      natsort($pages);
+      $pages = array_unique($pages);
+
+      $totozes = array();
+      foreach ($pages as $url) {
+        $list = totoz_hfr_get_totozes($url);
+        if (is_array($list)) {
+          $totozes = array_merge($totozes, $list);
+        }
+      }
+
+      return $totozes;
+    }
+  } else {
+    var_dump($result->error);
+  }
+}
+
+function totoz_hfr_get_totozes($url) {
+  $totozes = array();
+
+  $result = drupal_http_request($url);
+
+  if (empty($result->error)) {
+    if (preg_match_all('/\[:([^]]+)\]/', $result->data, $matches)) {
+      foreach ($matches[1] as $match) {
+        $totozes[] = stripslashes($match);
+      }
+
+      $totozes = array_unique($totozes);
+    } else {
+      var_dump('No totoz found');
+      print $result->data;
+    }
+  } else {
+    var_dump($result->error);
+  }
+
+  return $totozes;
 }
 
