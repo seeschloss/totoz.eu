@@ -248,7 +248,7 @@ function totoz_technical_info($node, $format) {
     }
   }
   catch (Exception $e) {
-    $image = new Imagick("/home/seeschloss/totoz.eu/sites/default/files/totoz/uxam.gif");
+    return "";
   }
 
   $theme_arguments = array(
@@ -553,13 +553,13 @@ function totoz_search_totozes($format) {
   $limit = 50;
   $total_items = 0;
 
-  if (!empty($terms)) {
+  if (!empty($terms) and strlen($terms) > 2) {
     $offset = isset($_GET['offset']) ? $_GET['offset'] : pager_find_page() * $limit;
     $nodes = array();
 
     $nids = array();
 
-    /*
+    //*
     // Exact title match
     $query = db_select('node', 'n')
       ->fields('n', array('nid'))
@@ -794,8 +794,81 @@ function totoz_form_totoz_node_form_alter(&$form, &$form_state, $form_id) {
 function totoz_node_view_alter(&$build) {
   if ($build['#bundle'] == 'totoz') {
     $node = $build['#node'];
-
     $nsfw = $node->field_nsfw[LANGUAGE_NONE][0]['value'];
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'twitter:card',
+        'content' => 'summary'
+      ),
+    ), 'totoz_twitter_card');
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'twitter:site',
+        'content' => '@badaseong'
+      ),
+    ), 'totoz_twitter_site');
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'twitter:title',
+        'content' => $node->title
+      ),
+    ), 'totoz_twitter_site');
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'twitter:description',
+        'content' => '[:' . $node->title . ']'
+      ),
+    ), 'totoz_twitter_site');
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'property' => 'og:site_name',
+        'content' => 'Totoz.eu'
+      ),
+    ), 'totoz_og_site_name');
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'property' => 'og:title',
+        'content' => $node->title
+      ),
+    ), 'totoz_og_title');
+
+    drupal_add_html_head(array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'property' => 'og:type',
+        'content' => 'totoz:image'
+      ),
+    ), 'totoz_og_type');
+
+    if (!$nsfw or _totoz_nsfw()) {
+      drupal_add_html_head(array(
+        '#tag' => 'meta',
+        '#attributes' => array(
+          'property' => 'og:image',
+          'content' => totoz_img($node)
+        ),
+      ), 'totoz_og_image');
+      drupal_add_html_head(array(
+        '#tag' => 'meta',
+        '#attributes' => array(
+          'name' => 'twitter:image:src',
+          'content' => totoz_img($node)
+        ),
+      ), 'totoz_twitter_image_src');
+    }
+
     if ($nsfw and !_totoz_nsfw()) {
       $build['field_image'] = array(
         '#markup' => '<div>' . t('<p>This totoz is flagged as not safe for work.</p><p>It is only accessible from !nsfwurl.</p>', array(
@@ -1073,7 +1146,7 @@ function totoz_node_presave($node) {
 
     @unlink(TOTOZ_NSFW_PATH . '/' . $filename_lc);
     if (!symlink($path, TOTOZ_NSFW_PATH . '/' . $filename_lc)) {
-      watchdog('totoz', t('Error creating symlink for %totoz (%path)', array('%totoz', $node->title, '%path' => TOTOZ_NSFW_PATH . '/' . $filename_lc)), WATCHDOG_WARNING);
+      watchdog('totoz', 'Error creating symlink for %totoz (%path)', array('%totoz' => $node->title, '%path' => TOTOZ_NSFW_PATH . '/' . $filename_lc), WATCHDOG_WARNING);
     }
 
     $nsfw = $node->field_nsfw[LANGUAGE_NONE][0]['value'];

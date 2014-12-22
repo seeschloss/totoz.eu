@@ -26,6 +26,25 @@ function totoz_hfr_import($totoz_name, $exit = TRUE) {
       if (!empty($result->error)) {
         watchdog('totoz', 'Error loading totoz perso !user #!n:<br /><pre>' . print_r($result, TRUE) . '</pre>', array('!user' => $totoz_perso[0], '!n' => $totoz_perso[1]), WATCHDOG_INFO);
 
+        if ($result->code == "404") {
+          // This is one of the buggy totozes of HFR. Let's create it (because it's going to stay anyway) and not publish it.
+          $node = new stdClass();
+          $node->type = 'totoz';
+          $node->title = $totoz_name;
+          $node->created = $created;
+          $node->promote = 0;
+          $node->status = 0;
+          $node->uid = user_load_by_name('hfr')->uid;
+          $node->field_nsfw = array(
+            LANGUAGE_NONE => array(
+              0 => array(
+                'value' => 0
+              )
+            )
+          );
+          node_save($node);
+        }
+
         if ($exit) {
           drupal_not_found();
           drupal_exit();
@@ -35,6 +54,26 @@ function totoz_hfr_import($totoz_name, $exit = TRUE) {
       }
     } else {
       watchdog('totoz', 'Error loading totoz !user:<br /><pre>' . print_r($result, TRUE) . '</pre>', array('!user' => $totoz_name), WATCHDOG_INFO);
+
+      if ($result->code == "404") {
+        // This is one of the buggy totozes of HFR. Let's create it (because it's going to stay anyway) and not publish it.
+        $node = new stdClass();
+        $node->type = 'totoz';
+        $node->title = $totoz_name;
+        $node->created = $created;
+        $node->promote = 0;
+        $node->status = 0;
+        $node->uid = user_load_by_name('hfr')->uid;
+        $node->field_nsfw = array(
+          LANGUAGE_NONE => array(
+            0 => array(
+              'value' => 0
+            )
+          )
+        );
+        node_save($node);
+      }
+
       if ($exit) {
         drupal_not_found();
         drupal_exit();
@@ -202,7 +241,11 @@ function totoz_hfr_update_new() {
         } else {
           print "Totoz [:$totoz] doesn't exist... ";
           $node = totoz_hfr_import($totoz, FALSE);
-          print "created (nid " . $node->nid . ")\n";
+          if ($node->nid) {
+            print "created (nid " . $node->nid . ")\n";
+          } else {
+            print "can't be created\n";
+          }
           sleep(1);
         }
       }

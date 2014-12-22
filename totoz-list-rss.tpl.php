@@ -1,26 +1,23 @@
 <?php
   global $base_url;
-?>
-<?php foreach ($nodes as $nid => &$totoz): ?>
-  <?php 
 
-  $tags = join(', ', $totoz['tags']);
+  foreach ($nodes as $nid => &$totoz) {
+    $tags = join(', ', $totoz['tags']);
 
-  $time = strtotime($totoz['created']);
+    $time = strtotime($totoz['created']);
 
-  $totoz = array(
-    'key' => 'item',
-    'value' => array(
-      'title' => $totoz['name'],
-      'description' => '<img src="' . $totoz['url'] . '"><br /><p>Tags: ' . $tags . '</p>',
-      'link' => url('node/' . $totoz['nid'], array('absolute' => TRUE)),
-      'guid' => $totoz['nid'],
-      'pubDate' => date('r', $time),
-    ),
-  );
-  ?>
-<?php endforeach; ?>
-<?php
+    $totoz = array(
+      'key' => 'item',
+      'value' => array(
+        'title' => $totoz['name'],
+        'description' => '<img src="' . $totoz['url'] . '"><br /><p>Tags: ' . $tags . '</p>',
+        'link' => url('node/' . $totoz['nid'], array('absolute' => TRUE)),
+        'guid' => $totoz['nid'],
+        'pubDate' => date('r', $time),
+      ),
+    );
+  }
+
   echo format_xml_elements(
     array(
       array(
