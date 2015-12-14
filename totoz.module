@@ -1,7 +1,7 @@
 <?php
 
-define('TOTOZ_SFW_PATH',  '/home/seeschloss/totoz.eu/sfw');
-define('TOTOZ_NSFW_PATH', '/home/seeschloss/totoz.eu/nsfw');
+define('TOTOZ_SFW_PATH',  '/home/seeschloss/www/totoz.eu/http/sfw');
+define('TOTOZ_NSFW_PATH', '/home/seeschloss/www/totoz.eu/http/nsfw');
 
 /**
  * Implements hook_menu().
@@ -546,8 +546,10 @@ function totoz_list_totozes($format) {
 function totoz_search_totozes($format) {
   if (isset($_GET['keys'])) {
     $terms = $_GET['keys'];
-  } else {
+  } else if (isset($_GET['terms'])) {
     $terms = $_GET['terms'];
+  } else {
+    $terms = '';
   }
 
   $limit = 50;
@@ -1107,7 +1109,7 @@ function totoz_import_from_totozeu_process(&$context) {
         );
       }
 
-      $src = '/home/seeschloss/totoz.ssz.fr/sites/default/files/totoz/nsfw/' . strtolower($node->title) . '.gif';
+      $src = '/home/seeschloss/http/totoz.eu/www/sites/default/files/totoz/nsfw/' . strtolower($node->title) . '.gif';
       $dst = 'public://totoz/' . strtolower(substr($node->title, 0, 230)) . '.gif';
       if (file_exists($src)) {
         $contents = file_get_contents($src);
@@ -1274,10 +1276,18 @@ function totoz_deliver_json($page_callback_result) {
 
   drupal_add_http_header('Access-Control-Allow-Origin', '*');
 
+  $json = "";
   if (is_array($page_callback_result)) {
-    echo drupal_json_encode($page_callback_result);
+    $json = drupal_json_encode($page_callback_result);
   } else {
-    echo $page_callback_result;
+    $json = $page_callback_result;
+  }
+
+  if (isset($_GET['callback'])) {
+    $callback = $_GET['callback'];
+    echo $callback.'('.$json.');';
+  } else {
+    echo $json;
   }
 
   drupal_page_footer();

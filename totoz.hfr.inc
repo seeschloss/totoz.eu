@@ -4,7 +4,7 @@
  * Create a new totoz with user hfr (uid 4) from hardware.fr forums
  * if the totoz exists on HFR and if it doesn't exist on totoz.eu.
  */
-function totoz_hfr_import($totoz_name, $exit = TRUE) {
+function totoz_hfr_import($totoz_name, $exit = TRUE, $force_create = FALSE) {
   $totoz_name = basename($totoz_name, '.gif');
 
   $main_url = 'http://forum-images.hardware.fr/images/perso/' .
@@ -26,7 +26,7 @@ function totoz_hfr_import($totoz_name, $exit = TRUE) {
       if (!empty($result->error)) {
         watchdog('totoz', 'Error loading totoz perso !user #!n:<br /><pre>' . print_r($result, TRUE) . '</pre>', array('!user' => $totoz_perso[0], '!n' => $totoz_perso[1]), WATCHDOG_INFO);
 
-        if ($result->code == "404") {
+        if ($result->code == "404" && $force_create) {
           // This is one of the buggy totozes of HFR. Let's create it (because it's going to stay anyway) and not publish it.
           $node = new stdClass();
           $node->type = 'totoz';
@@ -55,7 +55,7 @@ function totoz_hfr_import($totoz_name, $exit = TRUE) {
     } else {
       watchdog('totoz', 'Error loading totoz !user:<br /><pre>' . print_r($result, TRUE) . '</pre>', array('!user' => $totoz_name), WATCHDOG_INFO);
 
-      if ($result->code == "404") {
+      if ($result->code == "404" && $force_create) {
         // This is one of the buggy totozes of HFR. Let's create it (because it's going to stay anyway) and not publish it.
         $node = new stdClass();
         $node->type = 'totoz';
@@ -130,7 +130,7 @@ function totoz_hfr_import($totoz_name, $exit = TRUE) {
     $file = file_load($node->field_image[LANGUAGE_NONE][0]['fid']);
     $path = drupal_realpath($file->uri);
 
-    $fi = new finfo(FILEINFO_MIME_TYPE, '/home/seeschloss/totoz.eu/magic.mime');
+    $fi = new finfo(FILEINFO_MIME_TYPE);
     $mime_type = $fi->file($path);
     header('Content-Type: ' . $mime_type);
     header('Content-Length: ' . filesize($path));
@@ -226,32 +226,43 @@ function totoz_hfr_tags($totoz_name) {
   return $tags;
 }
 
-function totoz_hfr_update_new() {
+function totoz_hfr_update_new($letter) {
+  $new = totoz_hfr_get_all_totoz($letter);
+  if (is_array($new)) {
+    foreach($new as $totoz) {
+      $nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $totoz));
+      if (count($nodes)) {
+        $node = reset($nodes);
+        print "Totoz [:$totoz] already exists: nid " . $node->nid . "\n";
+      } else {
+        print "Totoz [:$totoz] doesn't exist... ";
+        $node = totoz_hfr_import($totoz, FALSE, TRUE);
+        if ($node->nid) {
+          print "created (nid " . $node->nid . ")\n";
+        } else {
+          print "can't be created\n";
+        }
+        sleep(1);
+      }
+    }
+
+    return $new;
+  }
+}
+
+function totoz_hfr_update_all() {
   $letters = 'abcdefghijklmnopqrstuvwxyz|';
-  $letters = 'tuvwxyz|';
+  //$letters = 'tuvwxyz|';
   $totozes = array();
   for ($i = 0, $c = $letters[$i] ; $i < strlen($letters) ; $i++, $c = $letters[$i]) {
-    $new = totoz_hfr_get_all_totoz($c);
+    $new = totoz_hfr_update_new($c);
+
     if (is_array($new)) {
-      foreach($new as $totoz) {
-        $nodes = node_load_multiple(array(), array('type' => 'totoz', 'title' => $totoz));
-        if (count($nodes)) {
-          $node = reset($nodes);
-          print "Totoz [:$totoz] already exists: nid " . $node->nid . "\n";
-        } else {
-          print "Totoz [:$totoz] doesn't exist... ";
-          $node = totoz_hfr_import($totoz, FALSE);
-          if ($node->nid) {
-            print "created (nid " . $node->nid . ")\n";
-          } else {
-            print "can't be created\n";
-          }
-          sleep(1);
-        }
-      }
       $totozes = array_merge($totozes, $new);
     }
   }
+
+  print count($totozes)." new totoz imported\n";
 }
 
 function totoz_hfr_get_all_totoz($letter) {
@@ -262,7 +273,8 @@ function totoz_hfr_get_all_totoz($letter) {
   if (empty($result->error)) {
     if (preg_match_all('/\&amp;page=([0-9]+)/', $result->data, $matches)) {
       $pages = array($url);
-      foreach ($matches[1] as $page) {
+      $last_page = max($matches[1]);
+      for ($page = 1; $page <= $last_page; $page++) {
         $pages[] = $url . '&page=' . $page;
       }
 
@@ -297,8 +309,8 @@ function totoz_hfr_get_totozes($url) {
 
       $totozes = array_unique($totozes);
     } else {
-      var_dump('No totoz found');
-      print $result->data;
+      var_dump('No totoz found at '.$url);
+      print substr($result->data, 0, 100);
     }
   } else {
     var_dump($result->error);

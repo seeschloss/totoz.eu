@@ -3,7 +3,14 @@
 // this is needed for iconv to transliterate correctly
 setlocale(LC_ALL, 'en_US.UTF-8');
 
-$sfw = isset($_GET['sfw']) ? $_GET['sfw'] : 'sfw';
+if (isset($_GET['sfw'])) {
+	$sfw = $_GET['sfw'];
+} else if (strpos($_SERVER['HTTP_HOST'], 'nsfw') === 0) {
+	$sfw = 'nsfw';
+} else {
+	$sfw = 'sfw';
+}
+
 $totoz = str_replace('.gif', '', strtolower(urldecode($_GET['totoz'])));
 $totoz = str_replace('.png', '', strtolower($totoz));
 $totoz = str_replace('.jpg', '', strtolower($totoz));
@@ -21,9 +28,9 @@ $try_hfr = TRUE;
 // passed by this goto.
 begin:
 
-$filepath      = '/home/seeschloss/totoz.eu/' . $sfw . '/' . $totoz . '.gif';
-$filepath_sfw  = '/home/seeschloss/totoz.eu/sfw/' . $totoz . '.gif';
-$filepath_nsfw = '/home/seeschloss/totoz.eu/nsfw/' . $totoz . '.gif';
+$filepath      = '/home/seeschloss/http/totoz.eu/www/' . $sfw . '/' . $totoz . '.gif';
+$filepath_sfw  = '/home/seeschloss/http/totoz.eu/www/sfw/' . $totoz . '.gif';
+$filepath_nsfw = '/home/seeschloss/http/totoz.eu/www/nsfw/' . $totoz . '.gif';
 
 if (file_exists($filepath)) {
   // Our totoz exists and is allowed (SFW or NSFW totoz/NSFW domain, or SFW totoz/SFW domain).
@@ -48,7 +55,7 @@ if (file_exists($filepath)) {
 
   header('Content-Length: ' . filesize($filepath));
 
-  $fi = new finfo(FILEINFO_MIME_TYPE, '/home/seeschloss/totoz.eu/magic.mime');
+  $fi = new finfo(FILEINFO_MIME_TYPE);
   $mime_type = $fi->file($filepath);
   header('Content-Type: ' . $mime_type);
 
